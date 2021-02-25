@@ -2,151 +2,58 @@
 # Please review and update values
 
 workflows:
-    react-native-android:
-        name: React Native Android
-        max_build_duration: 120
-        instance_type: mac_mini
-        environment:
-            vars:
-                CM_KEYSTORE: Encrypted(...) # <-- Put your encrypted keystore file here
-                CM_KEYSTORE_PASSWORD: Encrypted(...) # <-- Put your encrypted keystore password here
-                CM_KEY_ALIAS_PASSWORD: Encrypted(...) # <-- Put your encrypted keystore alias password here
-                CM_KEY_ALIAS_USERNAME: Encrypted(...) # <-- Put your encrypted keystore alias username here
-            node: latest
-        triggering:
-            events:
-                - push
-                - tag
-                - pull_request
-            branch_patterns:
-                - pattern: develop
-                  include: true
-                  source: true
-        scripts:
-            - name: Install npm dependencies
-              script: |
-                npm install
-            - name: Set Android SDK location
-              script: |
-                echo "sdk.dir=$HOME/programs/android-sdk-macosx" > "$FCI_BUILD_DIR/android/local.properties"
-            - name: Set up keystore
-              script: |
-                    echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.keystore
-                    cat >> "$FCI_BUILD_DIR/android/key.properties" <<EOF
-                    storePassword=$CM_KEYSTORE_PASSWORD
-                    keyPassword=$CM_KEY_ALIAS_PASSWORD
-                    keyAlias=$CM_KEY_ALIAS_USERNAME
-                    storeFile=/tmp/keystore.keystore
-                    EOF
-            - name: Build Android release
-              script: |
-                # build Android
-                cd android
-                ./gradlew assembleRelease
-        artifacts:
-            - android/app/build/outputs/**/*.apk
-        publishing:
-            # See the following link for details about email publishing - https://docs.codemagic.io/publishing-yaml/distribution/#email
-            email:
-                recipients:
-                    - user_1@example.com
-                    - user_2@example.com
-                notify:
-                  success: true     # To not receive a notification when a build succeeds
-                  failure: false    # To not receive a notification when a build fails
-            slack: 
-              # See the following link about how to connect your Slack account - https://docs.codemagic.io/publishing-yaml/distribution/#slack
-              channel: '#channel-name'
-              notify_on_build_start: true   # To receive a notification when a build starts
-              notify:
-                success: true               # To not receive a notification when a build succeeds
-                failure: false              # To not receive a notification when a build fails
-            google_play:
-              # See the following link for information regarding publishing to Google Play - https://docs.codemagic.io/publishing-yaml/distribution/#google-play
-              credentials: Encrypted(...) # <-- Put your encrypted google-services.json here
-              track: internal
-    react-native-ios:
-        name: React Native iOS
-        max_build_duration: 120
-        instance_type: mac_mini
-        environment:
-            vars:
-                # Env vars for automatic iOS code signing
-                # See the following link for more details - https://docs.codemagic.io/code-signing-yaml/signing-ios/
-                XCODE_WORKSPACE: "YOUR_WORKSPACE_NAME.xcworkspace" # <-- Put the name of your Xcode workspace here
-                XCODE_SCHEME: "YOUR_SCHEME_NAME" # <-- Put the name of your Xcode scheme here
-                
-
-                # https://appstoreconnect.apple.com/access/api
-                APP_STORE_CONNECT_ISSUER_ID: Encrypted(...) # <-- Put your App Store Connect Issuer Id here
-                APP_STORE_CONNECT_KEY_IDENTIFIER: Encrypted(...) # <-- Put your App Store Connect Key Identifier here
-                APP_STORE_CONNECT_PRIVATE_KEY: Encrypted(...) # <-- Put your App Store Connect Private Key here
-                CERTIFICATE_PRIVATE_KEY: Encrypted(...) # <-- Put your Certificate Private key here
-            node: latest
-            xcode: latest
-            cocoapods: default
-        triggering:
-            events:
-                - push
-                - tag
-                - pull_request
-            branch_patterns:
-                - pattern: develop
-                  include: true
-                  source: true
-        scripts:
-            - name: Install npm dependencies
-              script: |
-                npm install
-            - name: Install CocoaPods dependencies
-              script: |
-                cd ios && pod install
-            - name: Set up keychain to be used for codesigning using Codemagic CLI 'keychain' command
-              script: |
-                keychain initialize
-            - name: 
-              script: |
-                # For information about Codemagic CLI commands visit: https://github.com/codemagic-ci-cd/cli-tools/blob/master/docs/app-store-connect/README.md
-                # For details about the --type paramater below - https://github.com/codemagic-ci-cd/cli-tools/blob/master/docs/app-store-connect/fetch-signing-files.md#--typeios_app_adhoc--ios_app_development--ios_app_inhouse--ios_app_store--mac_app_development--mac_app_direct--mac_app_store--mac_catalyst_app_development--mac_catalyst_app_direct--mac_catalyst_app_store--tvos_app_adhoc--tvos_app_development--tvos_app_inhouse--tvos_app_store
-                app-store-connect fetch-signing-files "YOUR_BUNDLE_ID_HERE" --type IOS_APP_ADHOC --create
-            - name: Use system default keychain
-              script: |
-                keychain add-certificates
-            - name: Increment build number
-              script: |
-                #!/bin/sh
-                set -e
-                set -x
-                cd $FCI_BUILD_DIR/ios
-                agvtool new-version -all $(($BUILD_NUMBER + 1))
-            - name: Set up code signing settings on Xcode project
-              script: |
-                xcode-project use-profiles
-            - name: Build ipa for distribution
-              script: |
-                xcode-project build-ipa --workspace "$FCI_BUILD_DIR/ios/$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME" 
-        artifacts:
-            - build/ios/ipa/*.ipa
-            - /tmp/xcodebuild_logs/*.log
-            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-        publishing:
-          # See the following link for details about email publishing - https://docs.codemagic.io/publishing-yaml/distribution/#email
-          email:
-            recipients:
-              - user_1@example.com
-              - user_2@example.com
-            notify:
-              success: true     # To not receive a notification when a build succeeds
-              failure: false    # To not receive a notification when a build fails
-          slack: 
-            # See the following link about how to connect your Slack account - https://docs.codemagic.io/publishing-yaml/distribution/#slack
-            channel: '#channel-name'
-            notify_on_build_start: true   # To receive a notification when a build starts
-            notify:
-              success: true               # To not receive a notification when a build succeeds
-              failure: false              # To not receive a notification when a build fails
-          app_store_connect:                 
-              apple_id: Encrypted(...) # <-- Put you encrypted Apple ID here
-              password: Encrypted(...) # <-- Put your encrypted App Specific Password here. For more information visit: https://support.apple.com/en-us/HT204397
-    
+  react-native-android:
+    name: React Native Android
+    max_build_duration: 60
+    instance_type: mac_mini
+    environment:
+      vars:
+        CM_KEYSTORE: Encrypted(Z0FBQUFBQmdOMlJTSXZQMkNxbkNhX3VPWWROT0k1ckpNUE1SSlM0clBRN3B0UXhPcUVNUUtULWhmQWJreFZzV0JpVXpuVF9KakpWbWhUV3RNdTFVeXp3cFNhRnZHc2xyS3AtNHJLXzZaT1VjbldBNEZpWlhySzdwVUlPaWZkWU5xYk91ZUR5UWNTem5qdmdMM3RTY19TOGk5V1dtcDc0cUZsM0RnR3c3b3czSEFPeXR1Mjd0QXpWb1RMbVQ4cnlKYXFfQWNxa080c0dncElickQ5Z2U1WVl6VmRRQUpSZ1pYd0t0VmZ4TWo1SkJ2RWIxcTFINmxRR3VlOEN3M0VqUTJwanJaYWVINnNjY0NWMjl0allmZm9SMU9HRS1ERVRQSnh2MFB5ODFlcmVBTzU3OVJ0T3Z4NnZDMVN1TWNkZW5xS2EyWWRMZW4tMWdTRUZyeW81WWFybnFSR0NvU3Uxbm5qLXBOQnZlSG95YW5tZFBjbGVGbUpSVl84Nm5tTXY3TzdHeV93SW9Halhpc0ZXMWRPdDNwdWkyVDJWaEZ2R2NnRmh6STJrWHhUNmJYUGMtWUFSS1ZTRkhfTzl3T1dSbksxTWtaY2dtd2dTaDNBckE0TVhTUDNla3A5a2NpZmNSN3lRdDQ2dF9haU9HQWJWU3dQcXI4UXNxT3ZCZE94OVR4cGFqbFdRRXktWWNXX1YtZGZNSk9tYXhWcVE2aFBDSUUyeVFsLWd0c0t5dGNkalU5blhuRDVJcDJLdzdqeld2RDRjR3ZvUGtyZGRWN1d1aWtTWm9MYmlOdHFnLTdGVTRRQnl3Y3lvNVAwSVRKUzk3YWpiajVhTDJ4S1hWeVNYNXAtbmF2OVVwQldoTE5HZXR1RXBqVUFSQWdvVWRXRGg1bE9oNXJmSDZacS1qbGN6YzNyN0czSFVQTC1TOXVBVlhhdG44RW82dEZDdExKREFEd2lmWTNRcldhcUpGMF9jLTg1bjNzTVpNdWZieHFnQUNRRFhGVWJXNmVMSXpXeHRlN2VxVWJIc2wwcFozTmREeHR6YmtoOHkxeHlyRHVXQWRlVU96QXVicHpkRFY4OGdJX0dLVktTZXNWYUIzUWlWNmhzSHlOQUdCaHh1V2ExTjc4YmdDeHl2Q0M5U3RBSUxxMzRHbnVVQjVzMDNwRzZXLXFlak9PUlVkbEFibEU5TVlscnZCaHZVWGFrQmRNWmtzbFJxa3FhbG53bWpGSGtPOFE4cVMzcXN0Nmk3QnZYNV9tOEtsbkRudUx1dWpYd3ZneGMxZE1Dek5BVjRDamJfNE5DMXdSZF9WU2JlQ3QtWHJIazBCMllSWHVWMkRxQUl1SW91aExYNkxpaFRUcU5aMmpNM0JxQjhaaS1DNmRqZjY5YW9TZmdEa0VzZUZtdngxalloWmN3MWZRTE0wbzh5WG1SX2pYbXcxbVVHMko2SWVzdWxpd2NDdWtDWF9TTjlTR3dKYTZOSFdfLVZ4ckhNWG92emFBdTZIaVhmWlI3TENiajl4SGU2Zk5rN05ld1JSUnVoYkhJMllCTl9HeE1jeXl6VXhyYmlSdDBCSFZHR2dxdTU0a1hvWVZZRWg4blFmWWhLa2w3dWthXzFHQXRvWGxaNllNaTVGSk1XSFpnMThaSHVFRkZKMWVpXzVrQzJnV09OWkZhR1FaeExnVE95SFNUalE3alp2NjUxRTQzZ25Md0tVYi1hQVhWSXd2X3NhMk5EQkFwMWlBQmN0dEhIZDlqZnV4TVRWb3ZYUWt2am1CbnlxaXRYLXQwd0ZVRzhLMEhvTXNPZGtMNmkycmVvSC1LTDk0VHpfRURBa1BTcGMzZ0hKOXhjTUNCdmtBY0NySzk3OGx3WkdZYWZfeW5WLWRadWRLVEhlTWs1VHRtTnhiYjhMZGw4cTB2NGtPcm9rSHNCQ0RzRXVENlZDUlFubERDZlkwaUZCckplTFJ0UC03dmRfT2F3VjRpbTVHY3NINEdodzhMMzNNamc2TnFoRWpwcjRoTnpFU1lodEhZQmZtRE80eV9jbTY0YkpqUEFNZVFPQ1Qxc3czZjlhbXE5QjhjTXFiUXZRNHZCa0tnS3pHRS1zb1MwMjRCRF9Yd1VzdjR0RENWUnNmQnZXb19EMEVqNjhQNkxhV3RyajVqdDJkRWN1dXg2UmNINkc3RDBVWDloWV96MEpreC15aU9uMUdReUJvcDd0OS1oc1UxRGUwd01UdHV5X2hzT282amoydnNEbzlFdHowalgtU0wyMDB2YzBGdUJ0YjFvaExhNVF5Zk9Ib2RUSUxXTFpWUUVsREhhMm9rbkZYRDFFNy1waFg2amNMMF9CWk9PRDBWUm40SDJObXUyNnZLOWlDZFlOYk1IV3BwWUxvTGxpSk5hVmNfV2t0bnZYVkh6aWlhU2psdHZ1d1piRXdXMEJfampJSzVvQXZJREdGVW9OWmtnQTNIVUxUUlh6bGxkMjZNTjc5Mk5ReUVpeTNUNGZJS3k2Vm01bHZ3RWZDZnVtcDRNUU9Jb3hTcEU1S3p6dTJENVNWSmlUZzBtcWVUWGYyWG5ZMFIzYVhMUEc0TWE5d1JmdjJFTlhJSnpnTm9yZENDR0p5bGNLZERkcGdtUGpORDN2TnhTSTVuT0VZekE3cUdRalFJem5VOXRCZnVKTndNenNzS3JLQWNRbXlTN1A2eDd2T0lFRHFkcTdpSjRGOGRBUmdQSFBmOWNva0dVWnIyUHZndGtxYWx5TGpOSFVEaGZEeWZwMDFSMm5YLVZWTTZqdElUekNIWWdqY0FfYThUZFRIWExpTzdrdnlaUFJqYUY0d1h0WTd0V0YwTFgxb2tYMWh3UklncHFENEJBSjNKalEyMjJnNGhJWU9rSjdMVklQZU93emZkOFIwUjBFTllfMnJpYlVrMzd2aWVDOU9vb01yenpVLU9TdXRTNHpxNXg4c2g0d19IWkZldjJwcUp3QnEtcm5tRE02QnU2U2EyVHJtcE5lWXNNeGFjZnllWUZDRVA0UmVzY1YyYjlNWDFrQkpjZ3NtSzVjOVRueHNvbDRYTW1NMkRPQ0tTSndqVjVMNDl4dzJYMjl4Q25sUFpEcnhUcXhKZUd0NmI0R0tnbkFRMnd1RHRONU9DUks4Qm15WmRicUtPU01IY0RwV3JUSy1JcEZRa1ZfbEJSUWVwS3dGblJyODlibUFlX1RhVUcwaWlEM2dMRjdSdHV5UFRNOUNwSE5vYUFMakJhR05qZ2I5RVFmbkhtQW9FblBQWXZqQ2JRa0I3RlNqenlXNlBkRXo2dkJVRXFiUGJaWl9nZVRQa2VxZnZBUl9rdDN4ME9kUUhRNDJmMTBHWVJGQXY2RDRMRlpzV1dMQk10NkNxQjFkQlBaNTNOb2sxajBlalVjZ2xzVTBFUE9pd2VPd2NBT0FaWjU2bnhCWTNMWGNTN0txZmp4M3lxY2J1QktKV1loWXFSV3V0a25IcHJ1NDBIR1o5ZXNpTDJBZ3VzN0RtLTNBcFBrRi1HcENRNGYtcFF6MnF4UFZWTXgyMnRtcnVXNDQxbmR2NlFtSnF1UzRzbEpRYTZ1aWRxODM5MGExOENxbGZiZHVZck02YXhXdVBXMDhrNzhZdHFiSzQ2RmlmMUZDMy13SmU3LXhDVEJEcnhiam1Uelg4TTdpbzltd3lVRnJkWHJqZjE1Z2M3VU9DbGZMRXVSbUJQMWc2bGRqUEpGelVJRno1Q0k0MmJrTlNKUTByX2lERUVnYkNQMkZpYnV1ZEluQWtUV3NhaEQ4MHBrSXRoY3lTRFUzUmppZWZCVUkxcjBlVzF3cTlvTnRiVVVzUlJ4d0NmbndaaFZPa094WkFWb3o2dnE2bTZmeXFZcnhXNUgybE12VWI2a0hvZ0dyTUlja1lBbXdxNDBpbTNDQ09DUGlRczBXX3A0MzFfNE9VblAycE52RVFkQmtkYjQzMU94X25ROXY3LWxWZE45Snp6TV9ZZlRoWFNaV2xYMzE5TTJ1VjNRUFQybWQ3cHFONGxPbzV5dzg1cnZ4TGNTRWdHeWdkZ0d1Q3pDWFAzcDQ1V3NIbzVIN19VYWZQSGNYSTdjME9jYzZIM1NrT0s3ZmFGZzdjcVBOWFp0NFpvSGV6YWw2SWxPMkREb1IyeGhWVTlqOGVkYW5SSjBDZ0htMGlVWS1Gb2tPdmIxNTVxR3BWUWpwekxDWmphN1FydTdRS3JWdHRfbHU4MWpIYXk4VkY0VEdqZmdUeGhuU1B1dWFZaDZWX2M3dzN2RWU2clRRZjBGWEJncDRWOGlvY0E2cFFaVVY0U0I3V3Q0RFpLUE1fTGl5YXJ5RjlpNWJhUWo2OXB3SE8xc2piYXVpRTljU2VlSzY5NnhGcXY3S0lCT3JDaER5N2JnTHl3Um5zalAtZ0ZpQ21fdjBvelljR0gzQlJUd0ZzVm9ndXc2UGIwOGJvS05VSEFWdEJKcW5jLXFrcFlObXp5QktZcHpfTjdsX3IyUWNVZG1wS3VUSzBXVmxKWWRONTdLZURlS3dFRXlGTnE3WC1oY2V6UThBUGNpQkM4WjBSY21ZdFMtRVNBRzdZV0ZqdFY5d1hjcEtPQnBIajFXLTdoVmlvb0VCd1czcXgwYWxTN0diMTRITWVURVVKcU96eW9yVnNtejY1a1k3dkJHWU1uMV9GS05Da1I3NjlnLU9ydzNDdFRFeWpLNndQNWxqYkhUS3JmRy0xOFdIdHNERk9UTUg5bHNTdWVJaFl3UjA3TmpLQnlXOER5MkU5aGEtUmVyamJmSGN2RGlEYmxYMmdLRjJxUmoycjU0bk1SNlVsM2ZWb1BaN044SHlIV3pVVFhCcjJLcGZjSGxhYkNlc2tNT2NmZnZFNy1qQTVuYW41Q0RHMklvcDJHY3VXdml2WkdWU3JDVlJzWk1Hem91VTZPd3RXUE1oaThId25Kc2EzZ2RsbUh1a0FZNDBDY0MxX2lFang0Mll3RGMweWVvZUw5WVRPRllWYUpnWFpSb0dvd1hHYzljWUR2VDVuLW1HOGNhdDBiMmtjWlBlYjB1bnZZMlNqNlBvUXF3NktHOEtoM0Y0OFRBRE5acVdhd0FsLWdSb0R4bXNwSlplb2llb29xdURvdHZVWXg4ekpWZ0xVM3JHS2k5LXpmZTFseGpVWWhNdVlObmFKVlNkYmlRSDhrUmZ3YlZOcUZ3X1hTd2VDX3JlcGhBbjNNSWF6YkdBVi1mV3Q1UzBoX29maU80b2RkOUVnRnh5NXBOQy01YVI3MjBjSjFsbjBnMkdLZGZyc0RjWW53eU9hcUVQR0pWWDZhQ1FLd3o4ZUZqUDVRa2hOLXNnblhzMFV1NXBNYlVFOGhEYXhNMEdQVWRIR19yZGRSR3FjSzAyNDNBal9mYWdBYTI5enk0bWp5SDQ2bVNZRmVVTTdaTjgtLXROcXVIektBejYxS0kzLXRQYkktSzg0cz0=) # <-- Put your encrypted keystore file here
+        CM_KEYSTORE_PASSWORD: Encrypted(Z0FBQUFBQmdOMlJpcDVrSmJzUm8wNEE2TGdXb2Vka19SckZ4YnlIVnhqMmlFRk9wY1AzLUh2X2lpNGFwVzh1RDF4TTRDVDhMQmlNMHg0VGdwR0JMV2paaEVTNUM4NmFfX0E9PQ==) # <-- Put your encrypted keystore password here
+        CM_KEY_ALIAS_PASSWORD: Encrypted(Z0FBQUFBQmdOMlRvem8tcmRrbUcwRlpLamtDYWY3Y1ZuM1VOVGpRLTFCTlNzeDlXX1NfUG9LakV5QndrWkFmajlub3lpSlNHbmVxLU0wY0NycVl3WUY1S0QtRVdweHozMmc9PQ==) # <-- Put your encrypted keystore alias password here
+        CM_KEY_ALIAS_USERNAME: Encrypted(Z0FBQUFBQmdOMlNucG5pTERkaVJVWHN3cnJSR3lidlU5SGlibmlEanAzYXdLWjVESXRKbWZrV3ZRZWs1Mm16NVdTUVgxSzlsS1pmbGpPVF9YelRJSXNwLW9OdVFiTHBPWXc9PQ==) # <-- Put your encrypted keystore alias username here
+      node: latest
+    triggering:
+      events:
+        - push
+        - tag
+        - pull_request
+      branch_patterns:
+        - pattern: develop
+          include: true
+          source: true
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm install
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$HOME/programs/android-sdk-macosx" > "$FCI_BUILD_DIR/android/local.properties"
+      - name: Set up keystore
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.keystore
+          cat >> "$FCI_BUILD_DIR/android/key.properties" <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_ALIAS_PASSWORD
+          keyAlias=$CM_KEY_ALIAS_USERNAME
+          storeFile=/tmp/keystore.keystore
+          EOF
+      - name: Build Android release
+        script: |
+          # build Android
+          cd android
+          ./gradlew assembleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+    publishing:
+      # See the following link for details about email publishing - https://docs.codemagic.io/publishing-yaml/distribution/#email
+      email:
+        recipients:
+          - micah.price@cortexlogic.com
+        notify:
+          success: true # To not receive a notification when a build succeeds
+          failure: false # To not receive a notification when a build fails
+      google_play:
+        # See the following link for information regarding publishing to Google Play - https://docs.codemagic.io/publishing-yaml/distribution/#google-play
+        credentials: Encrypted(Z0FBQUFBQmdOMlAzRURORklWWVRwMHRabjBuaVBqd2llRGdMWEYxVTZ1MWw1empLclByb2x5SGRqRmNRRXYyUkRBZUU4V2JDUF9jbXYzY3IwcFh4U09XQUNqU2Rma2pWYXNaSkZSdUY1WkhmaGZza2g3QXhxS3BCbVpWNFk4bjdCenFUNlFlaTlVTG03U1EzSkxTVGhQUTdMMHpULXdLMzFuYkxnTU43amVHRTFxNVZ6MXk3ekdEc3NfVHAwNk8tcURRRWJBdktGN2hJclNhczRyTXJ2dHEwb2lwMTI2b2ZyWmNsNHhoV3QtZnRpdXNtZHNDNWJxYy05WGdZZ1FJT2tlVFVuZzN6VTQ5R0FCSS1zaUdyV1lCOVlIdjlGRnFFbVptcmNORUdqSXZ2MXJSMUpKWktUQWMwRUJHUEpyMFRFTHVtTFJEU2xIcmRCRmdhN0RBV19rd1hET3pSRWhkaXV6cF9aMVVGMTFMdFIyOGxqU05KRFhsVkM2MEw3eWpvWEw3TGhCaFpWaGpqLUFJcDIyN2RMaVphUEo5anpwNE15Uy01UDJ4cEwwc3dzWkpsMGE1T2NFMG5weHdjMEw5ZTBvZ2NxV1d3WnpBa3IxOVdabjZGLU1aWUVrbnBVWWZvTkVKaW8zV0xaaXBWZHNnb3ZHeW1DVXNLeGxCUHNubmUyUU1NVW1CYzA4TWNoWXdBdU01aUtXT1lDeG5sTDloMGFVTWd6OEIzMEV5SWFTN0wxaTlkSzQzUVdzV0pZcXRSSHBMdkxxN3NtME4wb1lFdDZJY1dsRzFWTUI3Q2c0RW1zbXhvOUpLZHNaQ05uRHhkdU9saWVGa0ZKekJsRTBIcmh1T1ZFTWg1RVg5bzZYOXl3TDJ3QWl1MzAzc3ZrVk00OHJSdU9VbG9FRG9qYTcwOXA3YnRyQzZwaDhJX2dsNk44ck5NM2JIcWhQckFSWjQyd05qdERPQjR2M3dsQkpDRmNRPT0=) # <-- Put your encrypted google-services.json here
+        track: internal
