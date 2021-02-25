@@ -131,7 +131,7 @@ android {
 
     def appVersionCode = Integer.valueOf(System.env.BUILD_NUMBER ?: 1)
     defaultConfig {
-        applicationId "com.codemagicreactnative"
+        applicationId "com.amble43.testing"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode
