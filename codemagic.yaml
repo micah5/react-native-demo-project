@@ -59,7 +59,7 @@ workflows:
         track: internal
   ios:
     name: iOS build
-    max_build_duration: 10
+    max_build_duration: 20
     instance_type: mac_mini
     environment:
       vars:
@@ -95,6 +95,8 @@ workflows:
           # For information about Codemagic CLI commands visit: https://github.com/codemagic-ci-cd/cli-tools/blob/master/docs/app-store-connect/README.md
           echo $APP_STORE_CONNECT_PRIVATE_KEY | base64 --decode > private_key.p8
           echo $CERTIFICATE_PRIVATE_KEY | base64 --decode > cert_key.p8
+          echo $APP_STORE_CONNECT_ISSUER_ID
+          echo $APP_STORE_CONNECT_KEY_IDENTIFIER
           app-store-connect fetch-signing-files "com.amble43.test" --type IOS_APP_DEVELOPMENT --create --private-key="@file:private_key.p8" --certificate-key="@file:cert_key.p8"
       - name: Use system default keychain
         script: |
