@@ -94,9 +94,9 @@ workflows:
         script: |
           # For information about Codemagic CLI commands visit: https://github.com/codemagic-ci-cd/cli-tools/blob/master/docs/app-store-connect/README.md
           echo $APP_STORE_CONNECT_PRIVATE_KEY | base64 --decode > private_key.p8
-          echo $CERTIFICATE_PRIVATE_KEY | base64 --decode > cert_key.p8
+          echo $CERTIFICATE_PRIVATE_KEY | base64 --decode > cert_key
           export APP_STORE_CONNECT_PRIVATE_KEY="@file:private_key.p8"
-          export CERTIFICATE_PRIVATE_KEY="@file:cert_key.p8"
+          export CERTIFICATE_PRIVATE_KEY="@file:cert_key"
           app-store-connect fetch-signing-files "com.amble43.test" --type IOS_APP_DEVELOPMENT --create
       - name: Use system default keychain
         script: |
