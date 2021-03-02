@@ -59,7 +59,7 @@ workflows:
         track: internal
   ios:
     name: iOS build
-    max_build_duration: 15
+    max_build_duration: 10
     instance_type: mac_mini
     environment:
       vars:
@@ -83,7 +83,7 @@ workflows:
     scripts:
       - name: Install npm dependencies
         script: |
-          npm install  --legacy-peer-deps && gem install cocoapods-user-defined-build-types
+          npm install
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install
@@ -93,10 +93,8 @@ workflows:
       - name:
         script: |
           # For information about Codemagic CLI commands visit: https://github.com/codemagic-ci-cd/cli-tools/blob/master/docs/app-store-connect/README.md
-          # For details about the --type paramater below - https://github.com/codemagic-ci-cd/cli-tools/blob/master/docs/app-store-connect/fetch-signing-files.md#--typeios_app_adhoc--ios_app_development--ios_app_inhouse--ios_app_store--mac_app_development--mac_app_direct--mac_app_store--mac_catalyst_app_development--mac_catalyst_app_direct--mac_catalyst_app_store--tvos_app_adhoc--tvos_app_development--tvos_app_inhouse--tvos_app_store
-          # echo $APP_STORE_CONNECT_PRIVATE_KEY | base64 --decode > ../../key.p8
-          # export APP_STORE_CONNECT_PRIVATE_KEY="@file:key.p8"
-          app-store-connect fetch-signing-files "com.amble43.test" --type IOS_APP_ADHOC --create
+          echo $APP_STORE_CONNECT_PRIVATE_KEY | base64 --decode > key.p8
+          app-store-connect fetch-signing-files "com.amble43.test" --type IOS_APP_ADHOC --create --private-key="@file:key.p8"
       - name: Use system default keychain
         script: |
           keychain add-certificates
