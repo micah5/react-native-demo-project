@@ -63,8 +63,8 @@ workflows:
     instance_type: mac_mini
     environment:
       vars:
-        XCODE_WORKSPACE: 'KmSample.xcworkspace'
-        XCODE_SCHEME: 'KmSample'
+        XCODE_WORKSPACE: 'codemagicreactnative.xcworkspace'
+        XCODE_SCHEME: 'codemagicreactnative'
 
         APP_STORE_CONNECT_ISSUER_ID: Encrypted(Z0FBQUFBQmdQal83TEpzOGoxRVFObFJoRjIybWxuQWNWT1ozUUxZZ1Z5ZG9jc0ZDZGNfcHM0RHIwWTYycHVvZ0ROVmk1X1lIS2N6X01KMkZVdjNVb3J3YTUxR01UTUlfcWJzSldNN1JqajBCY3htZjItb3lmTmhKcndNUXplb0M4cVV0ZmIxWkEwa1c=)
         APP_STORE_CONNECT_KEY_IDENTIFIER: Encrypted(Z0FBQUFBQmdQa0FXaFJsNHJva0xaWm9kS2Ywd1dVajdQTnl6ODYtSm55WnhEcUtYQl81amV4bUp5M1BjanFWSDNyTDd2cHJJeENhMFF1dEtwNXY2OEFsQTVQbUNYVzVhR1E9PQ==)
